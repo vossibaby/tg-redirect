@@ -110,19 +110,21 @@ var waited = 0, iv = 200;
 var timer = setInterval(function() {
     waited += iv;
 
-    // Пробуем куку
-    if (getCookie('_ym_uid')) {
-        clearInterval(timer);
-        finish(getCookie('_ym_uid'));
-        return;
-    }
+    try {
+        // Пробуем куку
+        if (getCookie('_ym_uid')) {
+            clearInterval(timer);
+            finish(getCookie('_ym_uid'));
+            return;
+        }
 
-    // Пробуем API
-    if (typeof ym === 'function') {
-        ym(97479917, 'getClientID', function(cid) {
-            if (cid) { clearInterval(timer); finish(cid); }
-        });
-    }
+        // Пробуем API
+        if (typeof ym === 'function') {
+            ym(97479917, 'getClientID', function(cid) {
+                if (cid) { clearInterval(timer); finish(cid); }
+            });
+        }
+    } catch(e) {}
 
     // Таймаут — уходим без cid
     if (waited >= MAX_WAIT) {
@@ -130,6 +132,9 @@ var timer = setInterval(function() {
         finish('');
     }
 }, iv);
+
+// Жёсткий fallback — гарантированный вызов через MAX_WAIT+1с
+setTimeout(function() { finish(''); }, MAX_WAIT + 1000);
 </script>
 </body>
 </html>
