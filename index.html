@@ -9,132 +9,127 @@ body{display:flex;align-items:center;justify-content:center;height:100vh;margin:
 .loader{width:40px;height:40px;border:4px solid #ddd;border-top-color:#2AABEE;border-radius:50%;animation:spin .8s linear infinite;margin-right:12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .debug{text-align:left;padding:40px;font-family:monospace;font-size:14px;line-height:2.2;max-width:600px}
-.debug b{color:#333} .red{color:red} .green{color:green}
+.red{color:red} .green{color:green}
 </style>
 </head>
 <body>
+<div id="content"><div class="loader"></div>Переход в Telegram…</div>
 
+<!-- Яндекс.Метрика — отдельный блок с noscript-заглушкой -->
 <script>
-// ═══════════ НАСТРОЙКИ ═══════════
-var BOT      = 'potokbz_bot';
-var MAX_WAIT = 5000; // 5 сек ожидание Метрики
-// ══════════════════════════════════
+try {
+    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+    m[i].l=1*new Date();k=e.createElement(t);a=e.getElementsByTagName(t)[0];
+    k.async=1;k.src=r;if(a&&a.parentNode){a.parentNode.insertBefore(k,a)}else{e.head.appendChild(k)}})
+    (window,document,"script","https://mc.yandex.ru/metrika/tag.js","ym");
+    ym(97479917,"init",{clickmap:true,trackLinks:true,accurateTrackBounce:true});
+} catch(e) { console.log('Metrika init error:', e); }
+</script>
 
-// --- Утилиты ---
-function getParam(name) {
-    var r = new RegExp('[?&]' + name + '=([^&]*)');
-    var m = r.exec(location.search);
-    return m ? decodeURIComponent(m[1]) : '';
-}
-function getCookie(name) {
-    var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
-    return m ? decodeURIComponent(m[1]) : '';
-}
+<!-- Основной скрипт -->
+<script>
+(function() {
+    var BOT      = 'potokbz_bot';
+    var MAX_WAIT = 5000;
+    var done     = false;
 
-// --- Проверяем debug СРАЗУ, до загрузки Метрики ---
-var IS_DEBUG = (getParam('debug') === '1');
-
-if (!IS_DEBUG) {
-    // Обычный режим — показываем лоадер
-    document.body.innerHTML = '<div class="loader"></div>Переход в Telegram…';
-} else {
-    // Debug — показываем заглушку пока ждём Метрику
-    document.body.innerHTML = '<div class="debug"><h2>🔍 Debug — ждём Метрику...</h2></div>';
-}
-
-// --- Загружаем Метрику ПОСЛЕ проверки debug ---
-(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-(window,document,"script","https://mc.yandex.ru/metrika/tag.js","ym");
-ym(97479917,"init",{clickmap:true,trackLinks:true,accurateTrackBounce:true});
-
-// --- Основная логика ---
-var done = false;
-
-function buildStart(cid) {
-    var parts = [];
-    var keys = [
-        ['utm_source',   'src'],
-        ['utm_medium',   'med'],
-        ['utm_campaign', 'cmp'],
-        ['utm_content',  'cnt']
-    ];
-    for (var i = 0; i < keys.length; i++) {
-        var val = getParam(keys[i][0]).replace(/[^a-zA-Z0-9_]/g, '');
-        if (val) parts.push(keys[i][1] + '_' + val);
+    function getParam(name) {
+        var r = new RegExp('[?&]' + name + '=([^&]*)');
+        var m = r.exec(location.search);
+        return m ? decodeURIComponent(m[1]) : '';
     }
-    cid = (cid || '').replace(/[^a-zA-Z0-9_]/g, '');
-    if (cid) parts.push('cid_' + cid);
-    return parts.length > 0 ? parts.join('-').slice(0, 64).replace(/[-_]$/, '') : '';
-}
 
-function finish(clientId) {
-    if (done) return;
-    done = true;
+    function getCookie(name) {
+        var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+        return m ? decodeURIComponent(m[1]) : '';
+    }
 
-    var cid = clientId || getCookie('_ym_uid') || '';
-    var start = buildStart(cid);
+    var IS_DEBUG = (getParam('debug') === '1');
 
     if (IS_DEBUG) {
-        // Показываем результат на экране
-        var ok = '<span class="green">✅ ';
-        var no = '<span class="red">❌ ПУСТО';
-        document.body.innerHTML =
-            '<div class="debug">' +
-            '<h2>🔍 Debug нулевой страницы</h2>' +
-            '<b>utm_source:</b> '   + (getParam('utm_source')   || '—') + '<br>' +
-            '<b>utm_medium:</b> '   + (getParam('utm_medium')   || '—') + '<br>' +
-            '<b>utm_campaign:</b> ' + (getParam('utm_campaign') || '—') + '<br>' +
-            '<b>utm_content:</b> '  + (getParam('utm_content')  || '—') + '<br><br>' +
-            '<b>Кука _ym_uid:</b> '  + (getCookie('_ym_uid') ? ok + getCookie('_ym_uid') + '</span>' : no + '</span>') + '<br>' +
-            '<b>getClientID:</b> '   + (clientId               ? ok + clientId + '</span>'            : no + '</span>') + '<br>' +
-            '<b>utm_term (итог):</b> ' + (cid                  ? ok + cid + '</span>'                 : no + '</span>') + '<br><br>' +
-            '<b>start=</b> ' + (start || '<span class="red">пусто</span>') + '<br><br>' +
-            (start
-                ? '<b>Ссылка:</b><br><a href="https://t.me/'+BOT+'?start='+start+'">https://t.me/'+BOT+'?start='+start+'</a>'
-                : '<b>Ссылка:</b><br><a href="https://t.me/'+BOT+'">https://t.me/'+BOT+'</a> (обычный /start)') +
-            '</div>';
-        return;
+        document.getElementById('content').innerHTML =
+            '<div class="debug"><h2>🔍 Debug — ждём Метрику (до 5 сек)...</h2></div>';
     }
 
-    // Обычный режим — редирект
-    if (start) {
-        location.href = 'https://t.me/' + BOT + '?start=' + start;
-    } else {
-        location.href = 'https://t.me/' + BOT;
+    function buildStart(cid) {
+        var parts = [];
+        var keys = [
+            ['utm_source',   'src'],
+            ['utm_medium',   'med'],
+            ['utm_campaign', 'cmp'],
+            ['utm_content',  'cnt']
+        ];
+        for (var i = 0; i < keys.length; i++) {
+            var val = getParam(keys[i][0]).replace(/[^a-zA-Z0-9_]/g, '');
+            if (val) parts.push(keys[i][1] + '_' + val);
+        }
+        cid = (cid || '').replace(/[^a-zA-Z0-9_]/g, '');
+        if (cid) parts.push('cid_' + cid);
+        return parts.length > 0 ? parts.join('-').slice(0, 64).replace(/[-_]$/, '') : '';
     }
-}
 
-// --- Ждём Метрику ---
-var waited = 0, iv = 200;
-var timer = setInterval(function() {
-    waited += iv;
+    function finish(clientId) {
+        if (done) return;
+        done = true;
 
-    try {
-        // Пробуем куку
-        if (getCookie('_ym_uid')) {
-            clearInterval(timer);
-            finish(getCookie('_ym_uid'));
+        var cid = clientId || getCookie('_ym_uid') || '';
+        var start = buildStart(cid);
+
+        if (IS_DEBUG) {
+            var ok = '<span class="green">✅ ';
+            var no = '<span class="red">❌ ПУСТО</span>';
+            document.getElementById('content').innerHTML =
+                '<div class="debug">' +
+                '<h2>🔍 Debug нулевой страницы</h2>' +
+                '<b>utm_source:</b> '   + (getParam('utm_source')   || '—') + '<br>' +
+                '<b>utm_medium:</b> '   + (getParam('utm_medium')   || '—') + '<br>' +
+                '<b>utm_campaign:</b> ' + (getParam('utm_campaign') || '—') + '<br>' +
+                '<b>utm_content:</b> '  + (getParam('utm_content')  || '—') + '<br><br>' +
+                '<b>Кука _ym_uid:</b> '  + (getCookie('_ym_uid') ? ok + getCookie('_ym_uid') + '</span>' : no) + '<br>' +
+                '<b>getClientID:</b> '   + (clientId              ? ok + clientId + '</span>'             : no) + '<br>' +
+                '<b>utm_term (итог):</b> ' + (cid                 ? ok + cid + '</span>'                  : no) + '<br><br>' +
+                '<b>start=</b> ' + (start || '<span class="red">пусто</span>') + '<br><br>' +
+                (start
+                    ? '<b>Ссылка:</b><br><a href="https://t.me/'+BOT+'?start='+start+'">https://t.me/'+BOT+'?start='+start+'</a>'
+                    : '<b>Ссылка:</b><br><a href="https://t.me/'+BOT+'">https://t.me/'+BOT+'</a> (обычный /start)') +
+                '</div>';
             return;
         }
 
-        // Пробуем API
-        if (typeof ym === 'function') {
-            ym(97479917, 'getClientID', function(cid) {
-                if (cid) { clearInterval(timer); finish(cid); }
-            });
+        if (start) {
+            location.href = 'https://t.me/' + BOT + '?start=' + start;
+        } else {
+            location.href = 'https://t.me/' + BOT;
         }
-    } catch(e) {}
-
-    // Таймаут — уходим без cid
-    if (waited >= MAX_WAIT) {
-        clearInterval(timer);
-        finish('');
     }
-}, iv);
 
-// Жёсткий fallback — гарантированный вызов через MAX_WAIT+1с
-setTimeout(function() { finish(''); }, MAX_WAIT + 1000);
+    // Ждём Метрику
+    var waited = 0, iv = 200;
+    var timer = setInterval(function() {
+        waited += iv;
+
+        try {
+            if (getCookie('_ym_uid')) {
+                clearInterval(timer);
+                finish(getCookie('_ym_uid'));
+                return;
+            }
+            if (typeof ym === 'function') {
+                ym(97479917, 'getClientID', function(cid) {
+                    if (cid) { clearInterval(timer); finish(cid); }
+                });
+            }
+        } catch(e) {}
+
+        if (waited >= MAX_WAIT) {
+            clearInterval(timer);
+            finish('');
+        }
+    }, iv);
+
+    // Жёсткий fallback
+    setTimeout(function() { finish(''); }, MAX_WAIT + 2000);
+})();
 </script>
 </body>
 </html>
