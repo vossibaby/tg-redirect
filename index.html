@@ -40,8 +40,9 @@ try {
 <script>
 (function() {
     // ═══════════ НАСТРОЙКИ ═══════════
-    var REDIRECT_URL = 'https://sbsite.pro/utmdirect_1';
-    var MAX_WAIT     = 5000;
+    var BASE_URL    = 'https://sbsite.pro/';
+    var DEFAULT_FUNNEL = 'utmdirect_1'; // воронка по умолчанию
+    var MAX_WAIT    = 5000;
     // ══════════════════════════════════
 
     var done = false;
@@ -85,7 +86,9 @@ try {
         if (utmContent)  params.push('utm_content='  + encodeURIComponent(utmContent));
         if (utmTerm)     params.push('utm_term='     + encodeURIComponent(utmTerm));
 
-        var finalUrl = REDIRECT_URL;
+        // Определяем воронку из параметра или дефолт
+        var funnel = getParam('funnel') || DEFAULT_FUNNEL;
+        var finalUrl = BASE_URL + funnel;
         if (params.length > 0) {
             finalUrl += '?' + params.join('&');
         }
@@ -96,6 +99,7 @@ try {
             document.getElementById('content').innerHTML =
                 '<div class="debug">' +
                 '<h2>🔍 Debug нулевой страницы</h2>' +
+                '<b>Воронка:</b> ' + funnel + '<br><br>' +
                 '<b>utm_source:</b> '   + (utmSource   || '—') + '<br>' +
                 '<b>utm_medium:</b> '   + (utmMedium   || '—') + '<br>' +
                 '<b>utm_campaign:</b> ' + (utmCampaign || '—') + '<br>' +
